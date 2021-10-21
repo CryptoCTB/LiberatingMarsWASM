@@ -24,7 +24,7 @@ jobs:
       run: dotnet publish LiberatingMarsWasm.csproj -c Release -o release --nologo
     
     # changes the base-tag in index.html from '/' to 'LiberatingMarsWasm' to match GitHub Pages repository subdirectory
-    - name: Change base-tag in index.html from / to LiberatingMarsWasm
+    - name: Change base-tag in index.html from / to LiberatingMarsWASM
       run: sed -i 's/<base href="\/" \/>/<base href="\/LiberatingMarsWASM\/" \/>/g' release/wwwroot/index.html
     
     # copy index.html to 404.html to serve the same file when a file is not found
