@@ -1,0 +1,117 @@
+﻿@page "/"
+
+@inject HttpClient Http
+@inject IJSRuntime js
+
+@using System.IO;
+@using LiberatingMarsCLI;
+
+<h1>LiberatingMarsWasm</h1>
+
+<h2>Get keys</h2>
+
+<p>Select executable</p>
+
+<InputFile OnChange="HandleExecSelection" />
+<p>@exec_status</p>
+
+<h2>Upload file for conversion</h2>
+
+<p>@aes_key_string</p>
+<p>@aes_iv_string</p>
+
+<InputFile OnChange="HandleSelection" />
+<p>@status</p>
+
+<h2>Convert file</h2>
+
+<button @onclick="ConvertFile">Convert</button>
+
+<h2>Download converted file</h2>
+
+<button @onclick="DownloadFile">Download</button>
+
+@functions {
+    void DownloadFile()
+    {
+        js.InvokeVoidAsync("saveAsFile", newFilename, Convert.ToBase64String(result));
+    }
+}
+
+@code {
+    string exec_status;
+    string status;
+
+    string aes_key_string;
+    string aes_iv_string;
+
+    byte[] aes_key;
+    byte[] aes_iv;
+
+    byte[] input = null;
+    byte[] result = null;
+
+    string filename;
+    string newFilename;
+
+    async Task HandleExecSelection(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+
+        if (file != null)
+        {
+            var stream = new MemoryStream();
+            await file.Data.CopyToAsync(stream);
+
+            byte[] exec_data = stream.ToArray();
+
+            exec_status = $"Finished loading {file.Size} bytes from {file.Name}";
+
+            PullCrypto Crypto = new PullCrypto();
+            Crypto.pullCrypto(exec_data);
+
+            aes_key = Crypto.AESKey;
+            aes_iv = Crypto.AESIV;
+
+            aes_key_string = Convert.ToBase64String(aes_key);
+            aes_iv_string = Convert.ToBase64String(aes_iv);
+        }
+        else
+        {
+            Console.WriteLine("file is null");
+        }
+    }
+
+    async Task HandleSelection(IFileListEntry[] files)
+    {
+        var file = files.FirstOrDefault();
+
+        if (file != null)
+        {
+            Console.WriteLine("file is not null");
+
+            var stream = new MemoryStream();
+            await file.Data.CopyToAsync(stream);
+
+            input = stream.ToArray();
+
+            filename = file.Name;
+            newFilename = filename.Replace(".ctb", "_MARS3.ctb");
+
+            status = $"Finished loading {file.Size} bytes from {file.Name}";
+        }
+        else
+        {
+            Console.WriteLine("file is null");
+        }
+    }
+
+    void ConvertFile()
+    {
+        Converter MyConverter = new Converter(input, aes_key, aes_iv);
+
+        result = MyConverter.outContent;
+
+        Console.WriteLine("done");
+    }
+}
